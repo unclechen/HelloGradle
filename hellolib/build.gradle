@@ -1,0 +1,81 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 22
+    buildToolsVersion "23.0.1"
+
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 22
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            buildConfigField "boolean", "ENABLE_DEBUG", "false"
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            buildConfigField "boolean", "ENABLE_DEBUG", "true"
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:22.2.1'
+}
+
+// 拷贝自动生成的classes.jar并重命名
+task releaseMyLib(type: Copy, dependsOn: ['build']) {
+    from('build/intermediates/bundles/release/')
+    into('build/libs')
+    include('classes.jar')
+    rename('classes.jar', 'my-lib.jar')
+}
+
+// 自定义Jar任务打包jar
+task jarMyLib(type: Jar, dependsOn: ['build']) {
+    archiveName = 'my-lib.jar'
+    from('build/intermediates/classes/release')
+    destinationDir = file('build/libs')
+    exclude('com/nought/hellolib/BuildConfig.class')
+    exclude('com/nought/hellolib/BuildConfig\$*.class')
+    exclude('**/R.class')
+    exclude('**/R\$*.class')
+    include('com/nought/hellolib/*.class')
+}
+
+// 读取sdk目录
+def androidSDKDir = plugins.getPlugin('com.android.library').sdkHandler.getSdkFolder()
+def androidJarDir = androidSDKDir.toString() + '/platforms/' + "${android.compileSdkVersion}" + '/android.jar'
+// 自定义Proguard任务混淆jar包
+task proguardMyLib(type: proguard.gradle.ProGuardTask, dependsOn: ['jarMyLib']) {
+    injars('build/libs/my-lib.jar')
+    outjars('build/libs/my-pro-lib.jar')
+    libraryjars(androidJarDir)
+    configuration 'proguard-rules.pro'
+}
+
+// Log开关实现
+def enableLoggerDebug(boolean flag) {
+    def loggerFilePath = "src/main/java/com/nought/hellolib/UncleNought.java"
+    def updatedDebug = new File(loggerFilePath).getText('UTF-8')
+            .replaceAll("ENABLE_DEBUG\\s?=\\s?" + (!flag).toString(), "ENABLE_DEBUG = " + flag.toString())
+    new File(loggerFilePath).write(updatedDebug, 'UTF-8')
+    println(flag ? 'ENABLE_DEBUG : [true]' : 'ENABLE_DEBUG : [false]')
+}
+
+// 打包前关闭Log开关
+preBuild {}.doFirst {
+    if (('jarMyLib' in gradle.startParameter.taskNames)) {
+        enableLoggerDebug(false)
+    }
+}
+
+// 打包完成后开启Log开关
+jarMyLib {}.doLast {
+    enableLoggerDebug(true)
+}

@@ -1,0 +1,84 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 22
+    buildToolsVersion "23.0.1"
+
+    def currentVersionCode = getVersionCode()
+
+    defaultConfig {
+        applicationId "com.nought.hellogradle"
+        minSdkVersion 14
+        targetSdkVersion 22
+        versionCode currentVersionCode
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    productFlavors {
+        GooglePlay {
+            manifestPlaceholders = [UMENG_CHANNEL: "GooglePlay"]
+        }
+        Baidu {
+            manifestPlaceholders = [UMENG_CHANNEL: "Baidu"]
+        }
+        Wandoujia {
+            manifestPlaceholders = [UMENG_CHANNEL: "Wandoujia"]
+        }
+        Xiaomi {
+            manifestPlaceholders = [UMENG_CHANNEL: "Xiaomi"]
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:22.2.1'
+    compile 'com.android.support:design:22.2.1'
+//    compile project(':hellolib')
+}
+
+assembleRelease {}.doLast {
+    updateVersionCode()
+}
+
+def getVersionCode() {
+    def versionFile = file('version.properties')
+
+    if (versionFile.exists()) {
+        def Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionFile))
+        def versionCode = versionProps['build.number'].toInteger()
+        println('Current version code is ' + versionCode.toString())
+        return versionCode
+    } else {
+        throw new GradleException("Could not find version.properties!")
+    }
+}
+
+def updateVersionCode() {
+    def runTasks = gradle.startParameter.taskNames
+
+    if (!('assemble' in runTasks || 'assembleRelease' in runTasks || 'aR' in runTasks)) {
+        return
+    }
+
+    def File versionFile = file('version.properties')
+
+    if (versionFile.exists()) {
+        def Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionFile))
+        def currentVersionCode = versionProps['build.number'].toInteger()
+        currentVersionCode++
+        versionProps['build.number'] = currentVersionCode.toString()
+        versionProps.store(versionFile.newWriter(), null)
+        println('Updated version code to ' + currentVersionCode.toString())
+    } else {
+        throw new GradleException("Could not find version.properties!")
+    }
+}
