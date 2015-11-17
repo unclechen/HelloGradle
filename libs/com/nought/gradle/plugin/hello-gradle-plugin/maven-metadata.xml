@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.nought.gradle.plugin</groupId>
+  <artifactId>hello-gradle-plugin</artifactId>
+  <version>1.0.0</version>
+  <versioning>
+    <versions>
+      <version>1.0.0</version>
+    </versions>
+    <lastUpdated>20151117072455</lastUpdated>
+  </versioning>
+</metadata>
